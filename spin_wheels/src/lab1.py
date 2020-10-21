@@ -16,7 +16,7 @@ def lidar_callback(scan_msg):
     # Fill in the fields.  Field values are unspecified 
     # until they are actually assigned. The Twist message 
     # holds linear and angular velocities.
-    command.linear.x = 0.0
+    command.linear.x = 0.5
     command.linear.y = 0.0
     command.linear.z = 0.0
     command.angular.x = 0.0
@@ -37,8 +37,11 @@ def lidar_callback(scan_msg):
     # for each laser scan
     for i, scan in enumerate(distances):
         # for each laser scan, the angle is currentLaserTheta, the index is i, and the distance is scan
-        # TODO YOUR CODE HERE
-        # based on the motion you want (turn, stop moving, etc...), modify the target velocity of the robot motion
+        if currentLaserTheta < 0.174533 or currentLaserTheta > 6.108656:
+            # within front 20 degrees
+            if scan < 1:
+                command.linear.x = 0.0
+        
         # i.e.:
         # command.linear.x = 0.0
         # command.angular.z = 0.0
