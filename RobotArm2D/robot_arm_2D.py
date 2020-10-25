@@ -230,9 +230,31 @@ class DrawRobot(QWidget):
         ang_finger = self.gui.theta_fingers.value()
 
         mat_ret = dict()
+        mat_int = dict()
 
         # begin homework 1 : Problem 2
         # Each of these should be of the form: Translation * rotation
+        mat_int['upperarm_R'] = self.rotation_matrix(ang_shoulder)
+        mat_int['upperarm_T'] = self.translation_matrix(len_upper_arm, 0)
+
+        mat_int['forearm_R'] = self.rotation_matrix(ang_elbow)
+        mat_int['forearm_T'] = self.translation_matrix(len_forearm, 0)
+
+        mat_int['wrist_R'] = self.rotation_matrix(ang_wrist)
+        mat_int['wrist_T'] = self.translation_matrix(len_wrist, 0)
+
+        mat_int['finger1_R'] = self.rotation_matrix(ang_finger)
+        mat_int['finger2_R'] = self.rotation_matrix(-ang_finger)
+        mat_int['finger1_T'] = self.translation_matrix(len_finger, 0)
+        mat_int['finger2_T'] = self.translation_matrix(len_finger, 0)
+
+        mat_ret['upperarm'] = mat_int['upperarm_R']
+        for i in range(1, len(self.components)-1):
+            # rotate in local, translate by previous, then rotate/translate in previous link frame
+            mat_ret[self.components[i]] = mat_ret[self.components[i-1]] @ mat_int[self.components[i-1] + '_T'] @ mat_int[self.components[i] + '_R']
+        mat_ret['finger2'] =  mat_ret['wrist'] @ mat_int['wrist_T'] @ mat_int['finger2_R']
+        mat_ret['end'] = mat_ret['wrist'] @ mat_int['wrist_T'] @ mat_int['wrist_T']
+
         # end homework 1 : Problem 2
         return mat_ret
 
@@ -258,6 +280,10 @@ class DrawRobot(QWidget):
         #   rect_transform = self.transform_rect(rects['base'], mat)
         #   self.draw_rect(rect_transform, qp)
             #   getting the translation matrix for upper arm: matrices['upperarm' + '_T']
+        mats = self.get_matrices()
+        for component in self.components:
+            rect_transform = self.transform_rect(rects[component], mats[component])
+            self.draw_rect(rect_transform, qp)
         # end homework 1 : Problem 2
 
     def arm_end_pt(self):
@@ -265,6 +291,7 @@ class DrawRobot(QWidget):
         matrices = self.get_matrices()
         mat_accum = np.identity(3)
         # begin homework 1 : Problem 3
+        mat_accum = matrices['end']
         # end homework 1 : Problem 3
         pt_end = mat_accum[0:2, 2]
         return pt_end
@@ -354,6 +381,10 @@ class RobotArmGUI(QMainWindow):
 
         SliderDisplay.gui = self
 
+        # gradient params
+        self.min_step = np.radians(2)
+        self.step_size = np.radians(10)
+
     # generate a random reach point
     def random_reach(self):
         self.reach_x.set_value(random())
@@ -367,6 +398,46 @@ class RobotArmGUI(QMainWindow):
         self.robot_arm.text = "Not improved"
 
         # begin homework 2 : Problem 1
+        angles = [self.theta_base, self.theta_elbow, self.theta_fingers]
+
+        # only do this if step size > min step size
+        if self.step_size <= self.min_step:
+            return
+
+        smaller = False
+
+        # iterate through all angles
+        for angle in angles:
+            # compute joint direction to target (gradient)
+            init_dist = np.linalg.norm(self.robot_arm.arm_end_pt() - np.array([self.reach_x.value(), self.reach_y.value()]))
+            angle.set_value(angle.value() + 0.1)
+            dist = np.linalg.norm(self.robot_arm.arm_end_pt() - np.array([self.reach_x.value(), self.reach_y.value()]))
+            angle.set_value(angle.value() - 0.1) # reset angle
+            if dist > init_dist:
+                self.step_size *= -1 # step in the other direction
+
+            # compute distance with delta in step size
+            angle.set_value(angle.value() + self.step_size)
+            dist = np.linalg.norm(self.robot_arm.arm_end_pt() - np.array([self.reach_x.value(), self.reach_y.value()]))
+            if dist > init_dist:
+                # should decrease gradient
+                smaller = True
+                angle.set_value(angle.value() - self.step_size)
+        if smaller:
+            self.step_size *= 0.8
+        else:
+            self.robot_arm.text = "Improved"
+
+            # calculate gradient (direction to improved state)
+            # calculate distance when angle changed by step size
+                # if distance is worse, decrease step size by some factor
+                # if distance improves, say so
+
+
+
+
+
+
         # Keep trying smaller increments while nothing improves
             # calculate the current distance
             # Try each angle in turn
