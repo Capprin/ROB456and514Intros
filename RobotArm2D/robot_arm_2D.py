@@ -427,22 +427,6 @@ class RobotArmGUI(QMainWindow):
             self.step_size *= 0.8
         else:
             self.robot_arm.text = "Improved"
-
-            # calculate gradient (direction to improved state)
-            # calculate distance when angle changed by step size
-                # if distance is worse, decrease step size by some factor
-                # if distance improves, say so
-
-
-
-
-
-
-        # Keep trying smaller increments while nothing improves
-            # calculate the current distance
-            # Try each angle in turn
-                # Gradient
-        # end homework 2 : Problem 1
         self.robot_arm.repaint()
 
     def reach_jacobian(self):
