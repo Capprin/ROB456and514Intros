@@ -30,9 +30,26 @@ class RobotStateEstimation:
         :param ds Door Sensor - has probabilities for door sensor readings
         :param sensor_reading_has_door - contains true/false from door sensor
         """
-        new_probs = np.zeros(len(self.probabilities))
+        
         # begin homework 2 : problem 3
+        new_probs = np.zeros(len(self.probabilities))
+        n = 0
+        for i in range(len(new_probs)):
+            # each prob. is P(robot is here)
+            is_door = ws.is_in_front_of_door((i+1)/len(self.probabilities))
+            # get P(see door|is_door)
+            likelihood = 0
+            if is_door:
+                likelihood = ds.prob_see_door_if_door
+            else:
+                likelihood = ds.prob_see_door_if_no_door
+            # update likelihood to P(got reading|door state)
+            if not sensor_reading_has_door:
+                likelihood = 1-likelihood
+            new_probs[i] = likelihood * self.probabilities[i]
+            n += new_probs[i]
         # Normalize - all the denominators are the same because they're the sum of all cases
+        self.probabilities = new_probs/n
         # end homework 2 : problem 3
 
     # Distance to wall sensor (state estimation)
@@ -44,8 +61,8 @@ class RobotStateEstimation:
         # Standard deviation of error
         standard_deviation = ws.wall_standard_deviation
         # begin homework 2 : Extra credit
-            # Sample from probability
-        # Normalize - all the denominators are the same
+        self.mean = dist_reading
+        self.standard_deviation = standard_deviation
         # end homework 2 : Extra credit
         return self.mean, self.standard_deviation
 
@@ -58,6 +75,31 @@ class RobotStateEstimation:
         # Left edge - put move left probability into zero square along with stay-put probability
         # Right edge - put move right probability into last square
         # Normalize - sum should be one, except for numerical rounding
+        new_probs = np.zeros(len(self.probabilities))
+        n = 0
+        for k in range(len(self.probabilities)):
+            avg = 0
+            for i in range(len(self.probabilities)):
+                # get P(moved to k | located at i)
+                prob = 0
+                if i - k == -1:
+                    # i left of k
+                    prob = rs.prob_move_right_if_left
+                elif i - k == 0:
+                    # i at k
+                    prob = rs.prob_no_move_if_left
+                    # handle edges
+                    if k == 0:
+                        prob += rs.prob_move_left_if_left
+                    elif k == len(self.probabilities)-1:
+                        prob = rs.prob_move_right_if_left
+                elif i - k == 1:
+                    # i right of k
+                    prob = rs.prob_move_left_if_left
+                avg += prob * self.probabilities[i]
+            new_probs[k] = avg
+            n += avg
+        self.probabilities = new_probs/n
         # end homework 2 problem 4
 
     def update_belief_move_right(self, rs):
@@ -69,6 +111,31 @@ class RobotStateEstimation:
         # Left edge - put move left probability into zero square along with stay-put probability
         # Right edge - put move right probability into last square
         # Normalize - sum should be one, except for numerical rounding
+        new_probs = np.zeros(len(self.probabilities))
+        n = 0
+        for k in range(len(self.probabilities)):
+            avg = 0
+            for i in range(len(self.probabilities)):
+                # get P(moved to k | located at i)
+                prob = 0
+                if i - k == -1:
+                    # i left of k
+                    prob = rs.prob_move_right_if_right
+                elif i - k == 0:
+                    # i at k
+                    prob = rs.prob_no_move_if_right
+                    # handle edges
+                    if k == 0:
+                        prob += rs.prob_move_left_if_right
+                    elif k == len(self.probabilities)-1:
+                        prob = rs.prob_move_right_if_right
+                elif i - k == 1:
+                    # i right of k
+                    prob = rs.prob_move_left_if_right
+                avg += prob * self.probabilities[i]
+            new_probs[k] = avg
+            n += avg
+        self.probabilities = new_probs/n
         # end homework 2 problem 4
 
     # Put robot in the middle with a really broad standard deviation
@@ -84,6 +151,8 @@ class RobotStateEstimation:
         :return : mean and standard deviation of my current estimated location """
 
         # begin homework 3 : Problem 2
+        self.mean = self.mean + amount
+        self.standard_deviation = self.standard_deviation + rs.robot_move_standard_deviation_err
         # end homework 3 : Problem 2
         return self.mean, self.standard_deviation
 
@@ -94,6 +163,9 @@ class RobotStateEstimation:
         :param dist_reading - distance reading returned"""
 
         # begin homework 3 : Problem 1
+        k = self.standard_deviation / (self.standard_deviation + ws.wall_standard_deviation)
+        self.mean = self.mean + k * (dist_reading - self.mean)
+        self.standard_deviation = (1-k) * self.standard_deviation
         # end homework 3 : Problem 1
         return self.mean, self.standard_deviation
 

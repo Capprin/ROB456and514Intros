@@ -40,8 +40,13 @@ class DoorSensor:
         :return:
         """
         # begin homework 2 : problem 1
-        # Flip the coin...
-        # Determine percentage in front of door
+        truth = self.is_in_front_of_door(ws, rs)
+        if truth:
+            # actually saw a door, use those probs
+            return np.random.uniform() < self.prob_see_door_if_door
+        else:
+            # did not see a door
+            return np.random.uniform() < self.prob_see_door_if_no_door
         # end homework 2 : problem 1
         return True
 

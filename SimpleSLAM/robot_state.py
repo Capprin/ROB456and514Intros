@@ -35,7 +35,7 @@ class RobotState:
         self.prob_move_right_if_left = move_right_if_left
 
         # begin homework 2 : problem 2
-        # check probabilities are correct
+        self.no_move_if_left = 1 - move_left_if_left - move_right_if_left
         # end homework 2 : problem 2
 
     # Make sure probabilities add up to one
@@ -44,7 +44,7 @@ class RobotState:
         self.prob_move_left_if_right = move_left_if_right
 
         # begin homework 2 : problem 2
-        # check probabilities are correct
+        self.no_move_if_right = 1 - move_right_if_right - move_left_if_right
         # end homework 2 : problem 2
 
     # Just a helper function to place robot + sign in middle of bin
@@ -73,11 +73,16 @@ class RobotState:
         :param step_size - the bin size
         :returns The amount actually moved """
         # begin homework 2 : problem 2
-        # begin homework 2 : problem 2
-        # Flip the coin...
-        # Determine whether to move left, right, or stay put
-        # end homework 2 : problem 2
+        sampled = np.random.uniform()
+        if sampled < self.prob_move_left_if_left:
+            # step left
+            step_size *= -1
+        elif (sampled - self.prob_move_left_if_left) < self.no_move_if_left:
+            # don't move; remove influence of left prob.
+            return 0
+        # don't modify step_size anymore (covers right case)
         return self._move_(step_size)
+        # end homework 2 : problem 2
 
     # Roll the dice and move
     def move_right(self, step_size):
@@ -85,18 +90,23 @@ class RobotState:
         :param step_size - the bin size
         :returns The amount actually moved """
         # begin homework 2 : problem 2
-        # Flip the coin...
-        # Determine whether to move left, right, or stay put
-        # end homework 2 : problem 2
+        sampled = np.random.uniform()
+        if sampled < self.prob_move_left_if_right:
+            # step left
+            step_size *= -1
+        elif (sampled - self.prob_move_left_if_right) < self.no_move_if_right:
+            # don't move; remove influence of left prob.
+            return 0
+        # don't modify step_size anymore (covers right case)
         return self._move_(step_size)
+        # end homework 2 : problem 2
 
     def move_gauss(self, amount):
         """ Move by the amount given (may be positive or negative) with noise added
         :param amount - amount to move (negative is left, positive right)
         :returns The amount actually moved """
         # begin homework 3 : problem 2
-        # Sample the noise distribution - note zero mean
-        # Move amount plus noise sampled from noise distribution
+        amount = np.random.normal(amount, self.robot_move_standard_deviation_err)
         # end homework 3 : problem 2
 
         # Actually move (don't run off of end)
